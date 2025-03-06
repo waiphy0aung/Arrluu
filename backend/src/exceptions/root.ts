@@ -8,7 +8,7 @@ export class HttpException extends Error {
     message: string,
     errorCode: ErrorCode,
     statusCode: number,
-    error: any
+    error?: any
   ) {
     super(message);
     this.message = message;
