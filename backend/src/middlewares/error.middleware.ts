@@ -8,6 +8,6 @@ export const errorMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  const { statusCode, message } = error;
-  res.status(statusCode).json(logger.error(message, error.errors, statusCode));
+  const { statusCode, errorCode, message } = error;
+  res.status(statusCode).json(logger.error(message, error.errors, errorCode));
 };
