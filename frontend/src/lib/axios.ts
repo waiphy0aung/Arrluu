@@ -7,10 +7,10 @@ axios.defaults.validateStatus = () => {
 const axiosInstance = axios.create({
   baseURL: "http://localhost:5001/api",
   withCredentials: true,
-  // headers: {
-  //   Accept: "*/*",
-  //   "Access-Control-Allow-Origin": "*",
-  // },
+  headers: {
+    Accept: "*/*",
+    "Access-Control-Allow-Origin": "*",
+  },
 });
 
 const fetchPostRequest = async (
