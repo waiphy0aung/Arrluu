@@ -4,28 +4,31 @@ import User from "../models/user.model";
 import { BadRequestException } from "../exceptions/bad-request";
 import { compareSync, genSalt, hashSync } from "bcryptjs";
 import logger from "../lib/logger";
-import { generateToken } from "../lib/util";
+import { generateToken, generateUsername } from "../lib/util";
 import { LoginSchema, SignUpSchema } from "../schema/user.schema";
 import cloudinary from "../lib/cloudinary";
 
 export const signup = async (req: Request, res: Response) => {
   SignUpSchema.parse(req.body);
-  const { email, password } = req.body;
+  const { email, password, fullName } = req.body;
 
   const user = await User.findOne({ email });
   if (user) {
     throw new BadRequestException(
       "User already exists",
-      ErrorCode.USER_ALREADY_EXISTS,
+      ErrorCode.USER_ALREADY_EXISTS
     );
   }
 
   const salt = await genSalt(10);
   const hashedPassword = hashSync(password, salt);
 
+  const username = generateUsername(fullName);
+
   const newUser = new User({
     ...req.body,
     password: hashedPassword,
+    username,
   });
 
   generateToken(newUser._id, res);
@@ -46,7 +49,7 @@ export const login = async (req: Request, res: Response) => {
   if (!user || !compareSync(password, user.password)) {
     throw new BadRequestException(
       "Incorrect credentials",
-      ErrorCode.INCORRECT_CREDENTIALS,
+      ErrorCode.INCORRECT_CREDENTIALS
     );
   }
 
@@ -69,7 +72,7 @@ export const updateProfile = async (req: Request, res: Response) => {
   const updatedUser = await User.findByIdAndUpdate(
     _id,
     { profilePic: uploadResponse.secure_url },
-    { new: true },
+    { new: true }
   );
 
   res.status(200).json(logger.success("Successfully updated", updatedUser));
