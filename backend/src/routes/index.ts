@@ -7,6 +7,6 @@ const routes: Router = Router();
 
 routes.use("/auth",authRoutes)
 
-routes.use("/message", authMiddleware, messageRoutes)
+routes.use("/messages", authMiddleware, messageRoutes)
 
 export default routes

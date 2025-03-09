@@ -61,7 +61,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   res.cookie("token", "", { maxAge: 0 });
-  res.status(200).send(logger.success("Successfully logged out"));
+  res.status(200).send(logger.success("logged out successfully"));
 };
 
 export const updateProfile = async (req: Request, res: Response) => {
