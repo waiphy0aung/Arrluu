@@ -1,0 +1,12 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/waiphy0aung/Arrluu.git",
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm build --prefix frontend && npm build --prefix backend",
+    "start": "npm run start --prefix backend"
+  },
+  "author": "waiphyoaung <waiphyoaung17903@gmail.com>",
+  "license": "MIT"
+}
