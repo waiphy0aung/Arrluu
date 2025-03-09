@@ -10,8 +10,6 @@ import cors from "cors";
 import path from "path";
 import { app, server } from "./lib/socket";
 
-const __dirname = path.resolve();
-
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
 app.use(cookieParser());
