@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import fetchApi, {getErrMsg} from "../lib/axios";
+import fetchApi, { getErrMsg } from "../lib/axios";
 import toast from "react-hot-toast";
 import { SingUpFormState } from "../pages/SignUpPage";
 import { LoginFormState } from "../pages/LoginPage";
+import { ProfileFormState } from "../pages/ProfilePage";
 
 interface AuthState {
   authUser: any;
@@ -10,11 +11,13 @@ interface AuthState {
   isLogginIn: boolean;
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
+  onlineUsers: any[];
 
   checkAuth: () => void;
   signup: (formData: SingUpFormState) => Promise<void>;
   login: (formData: LoginFormState) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (formData: ProfileFormState) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -22,14 +25,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   isSinginUp: false,
   isLogginIn: false,
   isUpdatingProfile: false,
+  onlineUsers: [],
 
   isCheckingAuth: true,
 
   checkAuth: async () => {
     try {
-      const { data } = await fetchApi.get("/auth/check");
+      const user = await fetchApi.get("/auth/check");
 
-      set({ authUser: data });
+      set({ authUser: user });
     } catch (err) {
       console.log(err);
     } finally {
@@ -71,6 +75,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       toast.success(message);
     } catch (err: any) {
       toast.error(getErrMsg(err));
+    }
+  },
+
+  updateProfile: async (formData) => {
+    set({ isUpdatingProfile: true });
+    try {
+      const { data, message } = await fetchApi.put(
+        "/auth/update-profile",
+        formData
+      );
+      set({ authUser: data });
+      toast.success(message);
+    } catch (err: any) {
+      toast.error(getErrMsg(err));
+    } finally {
+      set({ isUpdatingProfile: false });
     }
   },
 }));

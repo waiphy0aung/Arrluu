@@ -4,7 +4,7 @@ import axios, { AxiosResponse } from "axios";
 //   return true;
 // }
 
-export const getErrMsg = (e: any) => e?.response?.data?.message
+export const getErrMsg = (e: any) => e?.response?.data?.message || e?.message
 
 const axiosInstance = axios.create({
   baseURL: "http://localhost:5001/api",
