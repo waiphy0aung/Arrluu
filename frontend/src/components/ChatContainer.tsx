@@ -17,7 +17,7 @@ const ChatContainer = () => {
   } = useChatStore();
 
   const { authUser } = useAuthStore();
-  const messageEndRef = useRef<HTMLElement>(null)
+  const messageEndRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     getMessages(selectedUser?._id);

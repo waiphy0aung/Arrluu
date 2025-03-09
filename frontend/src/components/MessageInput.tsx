@@ -11,7 +11,7 @@ export type MessageFormState = {
 const MessageInput = () => {
   const [text, setText] = useState<string>("");
   const [imagePreview, setImagePreview] = useState<MessageFormState["image"]>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { sendMessage } = useChatStore();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -4,7 +4,7 @@
   "main": "index.js",
   "repository": "https://github.com/waiphy0aung/Arrluu.git",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --prefix frontend && npm build --prefix frontend && npm build --prefix backend",
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend && npm run build --prefix backend",
     "start": "npm run start --prefix backend"
   },
   "author": "waiphyoaung <waiphyoaung17903@gmail.com>",
