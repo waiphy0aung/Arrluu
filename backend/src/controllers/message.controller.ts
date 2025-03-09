@@ -3,6 +3,7 @@ import User from "../models/user.model";
 import logger from "../lib/logger";
 import Message from "../models/message.model";
 import cloudinary from "../lib/cloudinary";
+import { getReceiverSocketId, io } from "../lib/socket";
 
 export const getUsersForSidebar = async (req: Request, res: Response) => {
   const { _id } = req.user;
@@ -44,6 +45,11 @@ export const sendMessage = async (req: Request, res: Response) => {
   });
 
   await newMessage.save();
+
+  const receiverSocketId = getReceiverSocketId(receiverId);
+  if (receiverSocketId) {
+    io.to(receiverSocketId).emit("newMessage", newMessage);
+  }
 
   res.status(201).json(logger.success("Message sent", newMessage));
 };

@@ -4,6 +4,9 @@ import toast from "react-hot-toast";
 import { SingUpFormState } from "../pages/SignUpPage";
 import { LoginFormState } from "../pages/LoginPage";
 import { ProfileFormState } from "../pages/ProfilePage";
+import { io, Socket } from "socket.io-client";
+
+const BASE_URL = "http://localhost:5001";
 
 interface AuthState {
   authUser: any;
@@ -12,20 +15,24 @@ interface AuthState {
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
   onlineUsers: any[];
+  socket: Socket | null;
 
   checkAuth: () => void;
   signup: (formData: SingUpFormState) => Promise<void>;
   login: (formData: LoginFormState) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (formData: ProfileFormState) => Promise<void>;
+  connectSocket: () => void;
+  disConnectSocket: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   authUser: null,
   isSinginUp: false,
   isLogginIn: false,
   isUpdatingProfile: false,
   onlineUsers: [],
+  socket: null,
 
   isCheckingAuth: true,
 
@@ -34,6 +41,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = await fetchApi.get("/auth/check");
 
       set({ authUser: user });
+      get().connectSocket();
     } catch (err) {
       console.log(err);
     } finally {
@@ -48,6 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       toast.success(message);
       set({ authUser: data });
+      get().connectSocket();
     } catch (err: any) {
       toast.error(getErrMsg(err));
     } finally {
@@ -61,6 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data, message } = await fetchApi.post("/auth/login", formData);
       toast.success(message);
       set({ authUser: data });
+      get().connectSocket();
     } catch (err: any) {
       toast.error(getErrMsg(err));
     } finally {
@@ -72,6 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { message } = await fetchApi.post("/auth/logout");
       set({ authUser: null });
+      get().disConnectSocket();
       toast.success(message);
     } catch (err: any) {
       toast.error(getErrMsg(err));
@@ -83,7 +94,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data, message } = await fetchApi.put(
         "/auth/update-profile",
-        formData
+        formData,
       );
       set({ authUser: data });
       toast.success(message);
@@ -92,5 +103,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       set({ isUpdatingProfile: false });
     }
+  },
+  connectSocket: () => {
+    const { authUser } = get();
+
+    if (!authUser || get().socket?.connected) return;
+
+    const socket = io(BASE_URL, {
+      query: {
+        userId: authUser._id,
+      },
+    });
+    socket.connect();
+
+    set({ socket });
+
+    socket.on("getOnlineUsers", (userIds) => {
+      set({ onlineUsers: userIds });
+    });
+  },
+  disConnectSocket: () => {
+    if (get().socket?.connected) get().socket?.disconnect();
   },
 }));
