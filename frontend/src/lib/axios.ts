@@ -1,8 +1,10 @@
 import axios, { AxiosResponse } from "axios";
 
-axios.defaults.validateStatus = () => {
-  return true;
-}
+// axios.defaults.validateStatus = (err: any) => {
+//   return true;
+// }
+
+export const getErrMsg = (e: any) => e?.response?.data?.message
 
 const axiosInstance = axios.create({
   baseURL: "http://localhost:5001/api",
@@ -15,7 +17,7 @@ const axiosInstance = axios.create({
 
 const fetchPostRequest = async (
   endpoint: string,
-  data: any,
+  data?: any,
   isFormData: boolean = false,
 ): Promise<any> => {
   const response: AxiosResponse<any> = await axiosInstance.post(
