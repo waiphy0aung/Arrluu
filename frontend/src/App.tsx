@@ -10,13 +10,16 @@ import { useEffect } from "react";
 import { Loader } from "lucide-react";
 import {Toaster} from "react-hot-toast";
 import {useThemeStore} from "./store/useThemeStore";
+import { useChatStore } from "./store/useChatStore";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+  const { setPrivateKey } = useChatStore()
   const {theme} = useThemeStore()
 
   useEffect(() => {
     checkAuth();
+    setPrivateKey();
   }, [checkAuth]);
 
   if (isCheckingAuth && !authUser) {

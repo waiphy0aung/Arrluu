@@ -24,6 +24,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    publicKey: {
+      alg: String,
+      e: String,
+      ext: Boolean,
+      key_ops: [String],
+      kty: String,
+      n: String
+    }
   },
   { timestamps: true },
 );

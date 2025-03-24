@@ -5,6 +5,7 @@ import { SingUpFormState } from "../pages/SignUpPage";
 import { LoginFormState } from "../pages/LoginPage";
 import { ProfileFormState } from "../pages/ProfilePage";
 import { io, Socket } from "socket.io-client";
+import { useChatStore } from "./useChatStore";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
@@ -52,7 +53,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signup: async (formData) => {
     set({ isSinginUp: true });
     try {
-      const { data, message } = await fetchApi.post("/auth/signup", formData);
+      const publicKeyJwk = await useChatStore.getState().generateKeyPair();
+      const { data, message } = await fetchApi.post("/auth/signup", { ...formData, publicKey: publicKeyJwk });
 
       toast.success(message);
       set({ authUser: data });
