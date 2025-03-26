@@ -42,6 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await fetchApi.get("/auth/check");
 
       set({ authUser: user });
+      useChatStore.setState({ publicKey: user.publicKey })
       get().connectSocket();
     } catch (err) {
       console.log(err);

@@ -3,7 +3,7 @@ import { create } from "zustand";
 import fetchApi, { getErrMsg } from "../lib/axios";
 import { MessageFormState } from "../components/MessageInput";
 import { useAuthStore } from "./useAuthStore";
-import { decryptMessage, encryptMessage, getKeyPair, importKey } from "../lib/util";
+import { decryptMessage, encryptMessage, encryptSymmetricKey, generateSymmetricKey, getKeyPair, importKey } from "../lib/util";
 
 interface ChatState {
   messages: any[];
@@ -12,6 +12,7 @@ interface ChatState {
   isUsersLoading: boolean;
   isMessagesLoading: boolean;
   privateKey: any;
+  publicKey: any;
 
   setSelectedUser: (selectedUser: any) => void;
   getUsers: () => Promise<void>;
@@ -30,6 +31,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isUsersLoading: false,
   isMessagesLoading: false,
   privateKey: null,
+  publicKey: null,
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
 
@@ -51,9 +53,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const decryptedData = await Promise.all(data.map(async (d: any) => {
         let decryptedText;
         if (d.text) {
-          console.log(">>>>",d.text)
-          decryptedText = await decryptMessage(d.text, get().privateKey)
-          console.log("decryptedText",decryptedText)
+          const encryptedKey = d.senderId === useAuthStore.getState().authUser._id ? d.senderEncryptedKey : d.receiverEncryptedKey;
+          decryptedText = await decryptMessage({
+            encryptedMessage: d.text,
+            iv: d.iv,
+            encryptedKey
+          },get().privateKey);
         }
         return { ...d, text: decryptedText }
       }))
@@ -69,13 +74,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     let encryptedText;
     if (messageData.text && messageData.text.length > 0) {
-      const publicKey = await importKey(selectedUser.publicKey, "encrypt")
-      encryptedText = await encryptMessage(messageData.text, publicKey)
+      const receiverPublicKey = await importKey(selectedUser.publicKey, "encrypt")
+      const senderPublicKey = await importKey(get().publicKey, "encrypt")
+      encryptedText = await encryptMessage(messageData.text, receiverPublicKey, senderPublicKey)
     }
 
     const encryptedData = {
       ...messageData,
-      text: encryptedText
+      ...encryptedText
     }
 
     try {
@@ -84,12 +90,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         encryptedData,
       );
 
-      let decryptedText;
-      if (data.text) {
-        decryptedText = await decryptMessage(data.text, get().privateKey)
-      }
-
-      set({ messages: [...messages, { ...data, text: decryptedText }] });
+      set({ messages: [...messages, { ...data, text: messageData.text }] });
     } catch (err: any) {
       toast.error(getErrMsg(err));
     }
@@ -101,13 +102,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const socket = useAuthStore.getState().socket;
 
     if (socket) {
-      socket.on("newMessage", async (message) => {
-        if (message.senderId !== selectedUser._id) return;
+      socket.on("newMessage", async (msg) => {
+        if (msg.senderId !== selectedUser._id) return;
         let decryptedText;
-        if (message.text) {
-          decryptedText = await decryptMessage(message.text, get().privateKey)
+        if (msg.text) {
+          const encryptedKey = msg.senderId === useAuthStore.getState().authUser._id ? msg.senderEncryptedKey : msg.receiverEncryptedKey;
+          decryptedText = await decryptMessage({
+            encryptedMessage: msg.text,
+            iv: msg.iv,
+            encryptedKey
+          },get().privateKey);
         }
-        set({ messages: [...get().messages, { ...message, text: decryptedText }] });
+        set({ messages: [...get().messages, { ...msg, text: decryptedText }] });
       });
     }
   },
