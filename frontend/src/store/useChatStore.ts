@@ -3,7 +3,7 @@ import { create } from "zustand";
 import fetchApi, { getErrMsg } from "../lib/axios";
 import { MessageFormState } from "../components/MessageInput";
 import { useAuthStore } from "./useAuthStore";
-import { decryptMessage, encryptMessage, encryptSymmetricKey, generateSymmetricKey, getKeyPair, importKey } from "../lib/util";
+import { decryptMessage, encryptMessage, getKeyPair, importKey } from "../lib/util";
 
 interface ChatState {
   messages: any[];
