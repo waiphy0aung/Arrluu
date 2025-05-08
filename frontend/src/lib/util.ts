@@ -83,6 +83,7 @@ export const decryptSymmetricKey = async (encryptedKey: string, privateKey: Cryp
 };
 
 export const importKey = async (jwk: JsonWebKey, method: "encrypt" | "decrypt"): Promise<CryptoKey> => {
+  console.log("jwk",jwk)
   return await crypto.subtle.importKey(
     'jwk',
     jwk,

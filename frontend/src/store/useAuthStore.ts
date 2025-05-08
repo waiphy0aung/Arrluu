@@ -59,6 +59,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       toast.success(message);
       set({ authUser: data });
+      useChatStore.setState({ publicKey: data.publicKey })
       get().connectSocket();
     } catch (err: any) {
       toast.error(getErrMsg(err));
@@ -72,7 +73,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data, message } = await fetchApi.post("/auth/login", formData);
       toast.success(message);
+      console.log("data", data)
       set({ authUser: data });
+      useChatStore.setState({ publicKey: data.publicKey })
       get().connectSocket();
     } catch (err: any) {
       toast.error(getErrMsg(err));
