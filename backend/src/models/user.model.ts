@@ -25,12 +25,8 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     publicKey: {
-      alg: String,
-      e: String,
-      ext: Boolean,
-      key_ops: [String],
-      kty: String,
-      n: String
+      type: mongoose.Schema.Types.Mixed,
+      required: true
     }
   },
   { timestamps: true },
