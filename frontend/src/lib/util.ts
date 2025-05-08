@@ -105,12 +105,3 @@ export const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
-export async function cryptoKeyToJwk(cryptoKey: CryptoKey | null): Promise<JsonWebKey> {
-  if (!(cryptoKey instanceof CryptoKey)) {
-    throw new TypeError("Expected a CryptoKey");
-  }
-
-  const jwk = await crypto.subtle.exportKey("jwk", cryptoKey);
-  return jwk;
-}
-
