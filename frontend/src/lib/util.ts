@@ -83,7 +83,6 @@ export const decryptSymmetricKey = async (encryptedKey: string, privateKey: Cryp
 };
 
 export const importKey = async (jwk: JsonWebKey, method: "encrypt" | "decrypt"): Promise<CryptoKey> => {
-  console.log("jwk",jwk)
   return await crypto.subtle.importKey(
     'jwk',
     jwk,
@@ -105,3 +104,13 @@ export const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
 };
+
+export async function cryptoKeyToJwk(cryptoKey: CryptoKey | null): Promise<JsonWebKey> {
+  if (!(cryptoKey instanceof CryptoKey)) {
+    throw new TypeError("Expected a CryptoKey");
+  }
+
+  const jwk = await crypto.subtle.exportKey("jwk", cryptoKey);
+  return jwk;
+}
+

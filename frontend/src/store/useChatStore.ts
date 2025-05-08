@@ -3,7 +3,7 @@ import { create } from "zustand";
 import fetchApi, { getErrMsg } from "../lib/axios";
 import { MessageFormState } from "../components/MessageInput";
 import { useAuthStore } from "./useAuthStore";
-import { decryptMessage, encryptMessage, getKeyPair, importKey } from "../lib/util";
+import { cryptoKeyToJwk, decryptMessage, encryptMessage, getKeyPair, importKey } from "../lib/util";
 import { loadKey, saveKey } from "../lib/keyStorage";
 
 interface ChatState {
@@ -83,13 +83,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     let encryptedText;
-    if (messageData.text && messageData.text.length > 0) {
+    if (get().publicKey && messageData.text && messageData.text.length > 0 && get().publicKey) {
       const receiverPublicKey = await importKey(
         selectedUser.publicKey,
         "encrypt"
       );
+
+      const publicKeyJwk = await cryptoKeyToJwk(get().publicKey)
       const senderPublicKey = await importKey(
-        get().publicKey!,
+        publicKeyJwk,
         "encrypt"
       );
       encryptedText = await encryptMessage(
