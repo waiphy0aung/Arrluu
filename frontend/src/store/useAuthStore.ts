@@ -6,6 +6,8 @@ import { LoginFormState } from "../pages/LoginPage";
 import { ProfileFormState } from "../pages/ProfilePage";
 import { io, Socket } from "socket.io-client";
 import { useChatStore } from "./useChatStore";
+import { importEncryptedPrivateKey } from "../lib/crypto";
+import { saveKey } from "../lib/keyStorage";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
@@ -54,8 +56,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signup: async (formData) => {
     set({ isSinginUp: true });
     try {
-      const publicKeyJwk = await useChatStore.getState().generateKeyPair();
+      const { publicKeyJwk, encryptedPrivateKey } = await useChatStore.getState().generateKeyPair(formData.password);
       const { data, message } = await fetchApi.post("/auth/signup", { ...formData, publicKey: publicKeyJwk });
+
+      await fetchApi.post("/key", { key: encryptedPrivateKey })
 
       toast.success(message);
       set({ authUser: data });
@@ -72,12 +76,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLogginIn: true });
     try {
       const { data, message } = await fetchApi.post("/auth/login", formData);
+      const encryptedPrivateKey = await fetchApi.get("/key");
+
+      const privateKey = await importEncryptedPrivateKey(encryptedPrivateKey, formData.password)
+      const privateKeyJwk = await crypto.subtle.exportKey("jwk", privateKey)
+
       toast.success(message);
-      console.log("data", data)
+
       set({ authUser: data });
-      useChatStore.setState({ publicKey: data.publicKey })
+      useChatStore.setState({ publicKey: data.publicKey, privateKey })
+      console.log("yess")
+
+      await saveKey('privateKey', privateKeyJwk)
+
       get().connectSocket();
     } catch (err: any) {
+      console.log("err",err)
       toast.error(getErrMsg(err));
     } finally {
       set({ isLogginIn: false });

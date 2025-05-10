@@ -5,6 +5,7 @@ import { MessageFormState } from "../components/MessageInput";
 import { useAuthStore } from "./useAuthStore";
 import { decryptMessage, encryptMessage, getKeyPair, importKey } from "../lib/util";
 import { loadKey, saveKey } from "../lib/keyStorage";
+import { exportAndEncryptPrivateKey } from "../lib/crypto";
 
 interface ChatState {
   messages: any[];
@@ -21,7 +22,7 @@ interface ChatState {
   sendMessage: (messageData: MessageFormState) => Promise<void>;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
-  generateKeyPair: () => Promise<JsonWebKey>;
+  generateKeyPair: (userPassword: string) => Promise<{ publicKeyJwk: JsonWebKey, encryptedPrivateKey: string }>;
   setPrivateKey: () => Promise<void>;
 }
 
@@ -142,14 +143,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (socket) socket.off("newMessage");
   },
 
-  generateKeyPair: async () => {
+  generateKeyPair: async (userPassword) => {
     const { publicKey, privateKey } = await getKeyPair();
+
+    const encryptedPrivateKey = await exportAndEncryptPrivateKey(privateKey, userPassword)
+
     const publicKeyJwk = await crypto.subtle.exportKey('jwk', publicKey);
     const privateKeyJwk = await crypto.subtle.exportKey('jwk', privateKey);
     // Store private key securely in IndexedDB
     await saveKey('privateKey', privateKeyJwk);
     set({ privateKey, publicKey });
-    return publicKeyJwk;
+    return { publicKeyJwk, encryptedPrivateKey };
   },
 
   setPrivateKey: async () => {
