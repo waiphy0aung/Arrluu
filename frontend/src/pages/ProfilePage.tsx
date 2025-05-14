@@ -3,7 +3,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import React, { useState } from "react";
 
 export type ProfileFormState = {
-  profilePic: string | ArrayBuffer | null;
+  profilePic: string | null;
 };
 
 const ProfilePage = () => {
@@ -21,7 +21,13 @@ const ProfilePage = () => {
     reader.readAsDataURL(file);
 
     reader.onload = async () => {
-      const base64Image: ProfileFormState["profilePic"] = reader.result;
+      let base64Image = reader.result;
+
+      if (base64Image instanceof ArrayBuffer) {
+        const decode = new TextDecoder("utf-8")
+        base64Image = decode.decode(base64Image)
+      }
+
       setSelectedImg(base64Image);
       await updateProfile({ profilePic: base64Image });
     };
@@ -41,7 +47,7 @@ const ProfilePage = () => {
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <img
-                src={selectedImg || authUser.profilePic || "/avatar.png"}
+                src={selectedImg || authUser?.profilePic || "/avatar.png"}
                 alt="Profile"
                 className="size-32 rounded-full object-cover border-4 "
               />
@@ -52,8 +58,7 @@ const ProfilePage = () => {
                   bg-base-content hover:scale-105
                   p-2 rounded-full cursor-pointer 
                   transition-all duration-200
-                  ${
-                    isUpdatingProfile ? "animate-pulse pointer-events-none" : ""
+                  ${isUpdatingProfile ? "animate-pulse pointer-events-none" : ""
                   }
                 `}
               >
@@ -102,7 +107,7 @@ const ProfilePage = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-2 border-b border-zinc-700">
                 <span>Member Since</span>
-                <span>{authUser.createdAt?.split("T")[0]}</span>
+                <span>{authUser?.createdAt?.split("T")[0]}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span>Account Status</span>

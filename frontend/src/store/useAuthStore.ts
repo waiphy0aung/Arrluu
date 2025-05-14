@@ -8,16 +8,17 @@ import { io, Socket } from "socket.io-client";
 import { useChatStore } from "./useChatStore";
 import { importEncryptedPrivateKey } from "../lib/crypto";
 import { saveKey } from "../lib/keyStorage";
+import { User } from "../types/user.types";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
 interface AuthState {
-  authUser: any;
+  authUser: User | null;
   isSinginUp: boolean;
   isLogginIn: boolean;
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
-  onlineUsers: any[];
+  onlineUsers: string[];
   socket: Socket | null;
 
   checkAuth: () => void;
@@ -85,7 +86,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       set({ authUser: data });
       useChatStore.setState({ publicKey: data.publicKey, privateKey })
-      console.log("yess")
 
       await saveKey('privateKey', privateKeyJwk)
 
