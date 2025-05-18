@@ -1,97 +1,54 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
-// axios.defaults.validateStatus = (err: any) => {
-//   return true;
-// }
+export const getErrMsg = (e: unknown): string => {
+  if (axios.isAxiosError(e)) return e.response?.data?.message ?? e.message;
+  return (e as Error)?.message ?? "Unknown error";
+};
 
-export const getErrMsg = (e: any) => e?.response?.data?.message || e?.message
-
-const axiosInstance = axios.create({
-  baseURL: import.meta.env.MODE === "development" ? "http://localhost:5001/api" : "/api",
+const axiosInstance: AxiosInstance = axios.create({
+  baseURL:
+    import.meta.env.MODE === "development"
+      ? "http://localhost:5001/api"
+      : "/api",
   withCredentials: true,
   headers: {
     Accept: "*/*",
-    "Access-Control-Allow-Origin": "*",
   },
 });
 
-const fetchPostRequest = async (
+const request = async <T = unknown>(
+  method: AxiosRequestConfig["method"],
   endpoint: string,
-  data?: any,
-  isFormData: boolean = false,
+  data?: unknown,
+  isFormData = false,
 ): Promise<any> => {
-  const response: AxiosResponse<any> = await axiosInstance.post(
-    endpoint,
+  const headers: Record<string, string> = {};
+  if (!isFormData && ["post", "put", "patch"].includes(method!)) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (isFormData) headers["Content-Type"] = "multipart/form-data";
+
+  const cfg: AxiosRequestConfig = {
+    url: endpoint,
+    method,
     data,
-    {
-      headers: {
-        ...(isFormData
-          ? { "Content-Type": "multipart/form-data" }
-          : { "Content-Type": "application/json" }),
-      },
-    },
-  );
-  return response.data;
-};
+    headers,
+  };
 
-const fetchPutRequest = async (
-  endpoint: string,
-  data: any,
-  isFormData: boolean = false,
-): Promise<any> => {
-  const response: AxiosResponse<any> = await axiosInstance.put(endpoint, data, {
-    headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-    },
-  });
-  return response.data;
-};
-
-const fetchPatchRequest = async (
-  endpoint: string,
-  data: any,
-  isFormData: boolean = false,
-): Promise<any> => {
-  const response: AxiosResponse<any> = await axiosInstance.patch(
-    endpoint,
-    data,
-    {
-      headers: {
-        ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      },
-    },
-  );
-  return response.data;
-};
-
-const fetchDeleteRequest = async (
-  endpoint: string,
-  data: any,
-): Promise<any> => {
-  const response: AxiosResponse<any> = await axiosInstance.delete(endpoint, {
-    data,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  return response.data;
-};
-
-const fetchGetRequest = async (endpoint: string): Promise<any> => {
-  const response: AxiosResponse<any> = await axiosInstance.get(endpoint, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  return response.data;
+  const res: AxiosResponse<T> = await axiosInstance.request<T>(cfg);
+  return res.data;
 };
 
 const fetchApi = {
-  get: fetchGetRequest,
-  post: fetchPostRequest,
-  put: fetchPutRequest,
-  patch: fetchPatchRequest,
-  delete: fetchDeleteRequest,
+  get: <T = unknown>(endpoint: string) => request<T>("get", endpoint),
+  post: <T = unknown>(endpoint: string, data?: unknown, isFormData = false) =>
+    request<T>("post", endpoint, data, isFormData),
+  put: <T = unknown>(endpoint: string, data?: unknown, isFormData = false) =>
+    request<T>("put", endpoint, data, isFormData),
+  patch: <T = unknown>(endpoint: string, data?: unknown, isFormData = false) =>
+    request<T>("patch", endpoint, data, isFormData),
+  delete: <T = unknown>(endpoint: string, data?: unknown) =>
+    request<T>("delete", endpoint, data),
 };
 
 export default fetchApi;

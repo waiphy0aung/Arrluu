@@ -127,22 +127,6 @@ export async function decryptMessage(msg: Message, privateKey: ChatState["privat
 
 }
 
-export async function decryptMessageOld(
-  { encryptedMessage, iv, encryptedKey }: { encryptedMessage: string; iv: string; encryptedKey: string },
-  privateKey: CryptoKey
-): Promise<string> {
-  if (!(privateKey instanceof CryptoKey)) throw new Error("Invalid private key");
-
-  const symmetricKey = await decryptSymmetricKey(encryptedKey, privateKey);
-  const decrypted = await crypto.subtle.decrypt(
-    { name: AES_GCM, iv: base64ToArrayBuffer(iv) },
-    symmetricKey,
-    base64ToArrayBuffer(encryptedMessage)
-  );
-
-  return new TextDecoder().decode(decrypted);
-}
-
 export async function encryptWithPassword(jwk: JsonWebKey, password: string): Promise<string> {
   const encoder = new TextEncoder();
   const salt = crypto.getRandomValues(new Uint8Array(16));
