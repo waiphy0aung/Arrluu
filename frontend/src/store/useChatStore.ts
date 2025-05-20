@@ -54,7 +54,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   getMessages: async (userId) => {
-    if(!userId){
+    if (!userId) {
       console.log("User not found")
       toast.error("Something went wrong")
     }
@@ -82,9 +82,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!selectedUser || !authUser) return
     if (!publicKey || !messageData.text) return
     const encryptedText = await encryptMessage(messageData, selectedUser, authUser);
+    const bodyData = { ...messageData, ...encryptedText }
     try {
-      const { data } = await fetchApi.post(`/messages/send/${selectedUser?._id}`, { ...messageData, ...encryptedText });
-      set({ messages: [...messages, { ...data, text: messageData.text }] });
+      const { data } = await fetchApi.post(`/messages/send/${selectedUser?._id}`, bodyData);
+
+      set({
+        messages: [
+          ...messages,
+          {
+            ...data,
+            text: messageData.text,
+          }]
+      });
     } catch (err: any) {
       toast.error(getErrMsg(err));
     }

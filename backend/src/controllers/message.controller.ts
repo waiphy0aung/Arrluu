@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import User from "../models/user.model";
 import logger from "../lib/logger";
 import Message from "../models/message.model";
-import cloudinary from "../lib/cloudinary";
-import { getReceiverSocketId, io } from "../lib/socket";
+import { messageQueue, queueEvents } from "../lib/queue";
 
 export const getUsersForSidebar = async (req: Request, res: Response) => {
   const { _id } = req.user;
@@ -27,29 +26,15 @@ export const getMessages = async (req: Request, res: Response) => {
 };
 
 export const sendMessage = async (req: Request, res: Response) => {
-  const { image } = req.body;
   const { _id: senderId } = req.user;
   const { id: receiverId } = req.params;
 
-  let imageUrl;
-  if (image) {
-    const uploadResponse = await cloudinary.uploader.upload(image);
-    imageUrl = uploadResponse.secure_url;
-  }
-
-  const newMessage = new Message({
+  const job = await messageQueue.add("sendMessage", {
     senderId,
     receiverId,
-    ...req.body,
-    image: imageUrl,
-  });
+    body: req.body
+  })
+  const newMessage = await job.waitUntilFinished(queueEvents)
 
-  await newMessage.save();
-
-  const receiverSocketId = getReceiverSocketId(receiverId);
-  if (receiverSocketId) {
-    io.to(receiverSocketId).emit("newMessage", newMessage);
-  }
-
-  res.status(201).json(logger.success("Message sent", newMessage));
+  res.status(201).json(logger.success("Message sent",newMessage));
 };

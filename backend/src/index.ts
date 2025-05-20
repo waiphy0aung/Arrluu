@@ -9,6 +9,9 @@ import logger from "./lib/logger";
 import cors from "cors";
 import path from "path";
 import { app, server } from "./lib/socket";
+import "./lib/queue"
+import { messageQueue, messageWorker, queueEvents } from "./lib/queue";
+import redisConnection from "./lib/redis";
 
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
@@ -31,7 +34,21 @@ if (NODE_ENV === "production") {
   });
 }
 
-server.listen(PORT, () => {
-  logger.success(`Server is listening on port: ${PORT}`);
-  connectDB();
+async function startServer() {
+  await queueEvents.waitUntilReady();
+  server.listen(PORT, () => {
+    logger.success(`Server is listening on port: ${PORT}`);
+    connectDB();
+  });
+}
+
+startServer();
+
+process.on("SIGINT", async () => {
+  logger.success("Shutting down gracefully...");
+  await messageQueue.close();
+  await messageWorker.close();
+  await queueEvents.close();
+  await redisConnection.quit();
+  process.exit(0);
 });

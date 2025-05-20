@@ -3,7 +3,7 @@ export type Message = {
   senderId: string;
   receiverId: string;
   text: string;
-  image: string;
+  image: string | null;
   iv: string;
   receiverEncryptedKey: string;
   senderEncryptedKey: string;
