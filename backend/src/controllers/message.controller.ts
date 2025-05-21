@@ -35,6 +35,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     body: req.body
   })
   const newMessage = await job.waitUntilFinished(queueEvents)
+  console.log("newMessage",newMessage)
 
-  res.status(201).json(logger.success("Message sent",newMessage));
+  res.status(201).json(logger.success("Message sent", newMessage));
 };
