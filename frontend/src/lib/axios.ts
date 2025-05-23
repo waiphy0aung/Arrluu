@@ -1,9 +1,15 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import { ApiError, ApiResponse } from "../types/api.types";
 
 export const getErrMsg = (e: unknown): string => {
-  if (axios.isAxiosError(e)) return e.response?.data?.message ?? e.message;
-  return (e as Error)?.message ?? "Unknown error";
+  if (axios.isAxiosError(e)) {
+    const axiosError = e as AxiosError<ApiError>;
+    return axiosError.response?.data?.message ?? axiosError.message;
+  }
+  if (e instanceof Error) return e.message;
+  return String(e) || "Unknown error";
 };
+
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL:
@@ -16,12 +22,12 @@ const axiosInstance: AxiosInstance = axios.create({
   },
 });
 
-const request = async <T = unknown>(
+const request = async <T = any>(
   method: AxiosRequestConfig["method"],
   endpoint: string,
   data?: unknown,
   isFormData = false,
-): Promise<any> => {
+): Promise<ApiResponse<T>> => {
   const headers: Record<string, string> = {};
   if (!isFormData && ["post", "put", "patch"].includes(method!)) {
     headers["Content-Type"] = "application/json";
@@ -35,19 +41,31 @@ const request = async <T = unknown>(
     headers,
   };
 
-  const res: AxiosResponse<T> = await axiosInstance.request<T>(cfg);
-  return res.data;
+  try {
+    const res: AxiosResponse<ApiResponse<T>> = await axiosInstance.request<ApiResponse<T>>(cfg);
+    return res.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw error;
+    }
+    throw new Error(getErrMsg(error));
+  }
 };
 
 const fetchApi = {
-  get: <T = unknown>(endpoint: string) => request<T>("get", endpoint),
-  post: <T = unknown>(endpoint: string, data?: unknown, isFormData = false) =>
+  get: <T = any>(endpoint: string): Promise<ApiResponse<T>> =>
+    request<T>("get", endpoint),
+
+  post: <T = any>(endpoint: string, data?: unknown, isFormData = false): Promise<ApiResponse<T>> =>
     request<T>("post", endpoint, data, isFormData),
-  put: <T = unknown>(endpoint: string, data?: unknown, isFormData = false) =>
+
+  put: <T = any>(endpoint: string, data?: unknown, isFormData = false): Promise<ApiResponse<T>> =>
     request<T>("put", endpoint, data, isFormData),
-  patch: <T = unknown>(endpoint: string, data?: unknown, isFormData = false) =>
+
+  patch: <T = any>(endpoint: string, data?: unknown, isFormData = false): Promise<ApiResponse<T>> =>
     request<T>("patch", endpoint, data, isFormData),
-  delete: <T = unknown>(endpoint: string, data?: unknown) =>
+
+  delete: <T = any>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> =>
     request<T>("delete", endpoint, data),
 };
 

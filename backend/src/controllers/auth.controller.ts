@@ -81,7 +81,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 };
 
 export const checkAuth = (req: Request, res: Response) => {
-  res.status(200).json(req.user);
+  res.status(200).json(logger.success("checked auth", req.user));
 };
 
 export const saveKey = async (req: Request, res: Response) => {
@@ -104,5 +104,5 @@ export const getKey = async (req: Request, res: Response) => {
   const { key } = await Key.findOne({ userId: _id }) || {}
   if (!key) throw new NotFoundException("Key not found", ErrorCode.KEY_NOTFOUND)
 
-  res.status(200).json(key)
+  res.status(200).json(logger.success("Get key", key))
 }

@@ -9,6 +9,7 @@ import { useChatStore } from "./useChatStore";
 import { importEncryptedPrivateKey } from "../lib/crypto";
 import { saveKey } from "../lib/keyStorage";
 import { User } from "../types/user.types";
+import publicKeyCache from "../lib/keyCache";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
@@ -42,10 +43,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const user = await fetchApi.get("/auth/check");
+      const { data } = await fetchApi.get<User>("/auth/check");
 
-      set({ authUser: user });
-      useChatStore.setState({ publicKey: user.publicKey })
+      set({ authUser: data });
+      useChatStore.setState({ publicKey: data.publicKey })
       get().connectSocket();
     } catch (err) {
       console.log(err);
@@ -58,7 +59,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isSinginUp: true });
     try {
       const { publicKeyJwk, encryptedPrivateKey } = await useChatStore.getState().generateKeyPair(formData.password);
-      const { data, message } = await fetchApi.post("/auth/signup", { ...formData, publicKey: publicKeyJwk });
+      const { data, message } = await fetchApi.post<User>("/auth/signup", { ...formData, publicKey: publicKeyJwk });
 
       await fetchApi.post("/key", { key: encryptedPrivateKey })
 
@@ -69,14 +70,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err: any) {
       toast.error(getErrMsg(err));
     } finally {
-      set({ isSinginUp: true });
+      set({ isSinginUp: false });
     }
   },
 
   login: async (formData) => {
     set({ isLogginIn: true });
     try {
-      const { data, message } = await fetchApi.post("/auth/login", formData);
+      const { data, message } = await fetchApi.post<User>("/auth/login", formData);
       const privateKey = await fetchPrivateKey(formData.password)
 
       toast.success(message);
@@ -85,7 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       useChatStore.setState({ publicKey: data.publicKey, privateKey })
       get().connectSocket();
     } catch (err: any) {
-      console.log("err", err)
+      console.error("Login failed:", err)
       toast.error(getErrMsg(err));
     } finally {
       set({ isLogginIn: false });
@@ -97,7 +98,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { message } = await fetchApi.post("/auth/logout");
       set({ authUser: null });
       get().disConnectSocket();
+
+      //clear sensitive data
+      publicKeyCache.clear()
+
       toast.success(message);
+      window.location.reload()
     } catch (err: any) {
       toast.error(getErrMsg(err));
     }
@@ -142,11 +148,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }));
 
 const fetchPrivateKey = async (password: string): Promise<CryptoKey> => {
-  const encryptedPrivateKey = await fetchApi.get("/key");
+  try {
+    const encryptedPrivateKey = await fetchApi.get<string>("/key");
 
-  const privateKey = await importEncryptedPrivateKey(encryptedPrivateKey, password)
-  const privateKeyJwk = await crypto.subtle.exportKey("jwk", privateKey)
+    const privateKey = await importEncryptedPrivateKey(encryptedPrivateKey.data, password)
+    const privateKeyJwk = await crypto.subtle.exportKey("jwk", privateKey)
 
-  await saveKey('privateKey', privateKeyJwk)
-  return privateKey
+    await saveKey('privateKey', privateKeyJwk)
+    return privateKey
+  } catch (error) {
+    console.error("Failed to fetch private key:", error);
+    throw new Error("Failed to decrypt private key. Please check your password.")
+  }
+
 }

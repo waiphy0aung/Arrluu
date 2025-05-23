@@ -1,9 +1,13 @@
 import { MessageFormState } from "../components/MessageInput";
 import { useAuthStore } from "../store/useAuthStore";
 import { ChatState } from "../store/useChatStore";
+import { EncryptedMessage } from "../types/crypto.types";
 import { Message } from "../types/message.types";
 import { User } from "../types/user.types";
 import { arrayBufferToBase64, base64ToArrayBuffer } from "./encoding";
+import { CryptoError, isCryptoKey } from "./errorHandler";
+import publicKeyCache from "./keyCache";
+import { timedCryptoOperation } from "./performance";
 
 const AES_GCM = 'AES-GCM';
 const RSA_OAEP = 'RSA-OAEP';
@@ -12,8 +16,6 @@ const AES_LENGTH = 256;
 const RSA_MODULUS_LENGTH = 2048;
 const RSA_PUBLIC_EXPONENT = new Uint8Array([1, 0, 1]);
 const PBKDF2_ITERATIONS = 100_000;
-
-const publicKeyCache = new Map<string, CryptoKey>();
 
 export async function getKeyPair(): Promise<CryptoKeyPair> {
   return crypto.subtle.generateKey(
@@ -43,26 +45,35 @@ export async function exportAndEncryptPrivateKey(privateKey: CryptoKey, password
 
 export async function importEncryptedPrivateKey(encryptedPayload: string, password: string): Promise<CryptoKey> {
   const jwk = await decryptWithPassword(encryptedPayload, password);
-  return await getCachedPublicKey(jwk, "decrypt")
+
+  return await importKey(jwk, "decrypt")
 }
 
-export async function getCachedPublicKey(
-  jwk: JsonWebKey,
-  usage: "encrypt" | "decrypt"
-): Promise<CryptoKey> {
-  const keyId = JSON.stringify(jwk);
-  if (publicKeyCache.has(keyId)) {
-    return publicKeyCache.get(keyId)!;
-  }
-  const key = await crypto.subtle.importKey(
+export async function importKey(jwk: JsonWebKey, usage: "encrypt" | "decrypt"): Promise<CryptoKey> {
+  return await crypto.subtle.importKey(
     "jwk",
     jwk,
     { name: RSA_OAEP, hash: HASH },
     true,
     [usage]
   )
+}
+
+export async function getCachedPublicKey(
+  jwk: JsonWebKey,
+  usage: "encrypt" | "decrypt"
+): Promise<CryptoKey> {
+  const keyId = `${JSON.stringify(jwk)}-${usage}`;
+
+  // Try cache first
+  const cached = publicKeyCache.get(keyId);
+  if (cached) return cached;
+
+  // Import and cache
+  const key = await importKey(jwk, usage)
+
   publicKeyCache.set(keyId, key);
-  return key
+  return key;
 }
 
 export async function encryptSymmetricKey(symmetricKey: CryptoKey, publicKey: CryptoKey): Promise<string> {
@@ -80,51 +91,70 @@ export async function decryptSymmetricKey(encryptedKey: string, privateKey: Cryp
   return crypto.subtle.importKey("raw", decrypted, { name: AES_GCM }, true, ["decrypt"]);
 }
 
-export async function encryptMessage(messageData: MessageFormState, selectedUser: User, authUser: User): Promise<{
-  iv: string;
-  text: string;
-  receiverEncryptedKey: string;
-  senderEncryptedKey: string;
-}> {
-  const receiverPublicKey = await getCachedPublicKey(selectedUser.publicKey, "encrypt");
-  const senderPublicKey = await getCachedPublicKey(authUser.publicKey, "encrypt");
-  const symmetricKey = await generateSymmetricKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: AES_GCM, iv },
-    symmetricKey,
-    new TextEncoder().encode(messageData.text)
-  );
-
-  const receiverEncryptedKey = await encryptSymmetricKey(symmetricKey, receiverPublicKey);
-  const senderEncryptedKey = await encryptSymmetricKey(symmetricKey, senderPublicKey);
-
-  return {
-    iv: arrayBufferToBase64(iv),
-    text: arrayBufferToBase64(encrypted),
-    receiverEncryptedKey,
-    senderEncryptedKey,
-  };
-}
-
-export async function decryptMessage(msg: Message, privateKey: ChatState["privateKey"]): Promise<Message> {
-  let decryptedText = msg.text;
-  if (decryptedText) {
-    const encryptedKey = msg.senderId === useAuthStore.getState().authUser?._id ? msg.senderEncryptedKey : msg.receiverEncryptedKey;
-    const { text, iv } = msg
-    if (!(privateKey instanceof CryptoKey)) throw new Error("Invalid private key");
-
-    const symmetricKey = await decryptSymmetricKey(encryptedKey, privateKey);
-    const decrypted = await crypto.subtle.decrypt(
-      { name: AES_GCM, iv: base64ToArrayBuffer(iv) },
+export async function encryptMessage(
+  messageData: MessageFormState,
+  selectedUser: User,
+  authUser: User
+): Promise<EncryptedMessage> {
+  return timedCryptoOperation('encryptMessage', async () => {
+    const receiverPublicKey = await getCachedPublicKey(selectedUser.publicKey, "encrypt");
+    const senderPublicKey = await getCachedPublicKey(authUser.publicKey, "encrypt");
+    const symmetricKey = await generateSymmetricKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    
+    const encrypted = await crypto.subtle.encrypt(
+      { name: AES_GCM, iv },
       symmetricKey,
-      base64ToArrayBuffer(text)
+      new TextEncoder().encode(messageData.text)
     );
 
-    decryptedText = new TextDecoder().decode(decrypted);
-  }
-  return { ...msg, text: decryptedText };
+    const [receiverEncryptedKey, senderEncryptedKey] = await Promise.all([
+      encryptSymmetricKey(symmetricKey, receiverPublicKey),
+      encryptSymmetricKey(symmetricKey, senderPublicKey)
+    ]);
 
+    return {
+      iv: arrayBufferToBase64(iv),
+      text: arrayBufferToBase64(encrypted),
+      receiverEncryptedKey,
+      senderEncryptedKey,
+    };
+  });
+}
+
+export async function decryptMessage(
+  msg: Message,
+  privateKey: CryptoKey | null
+): Promise<Message> {
+  if (!msg.text || !privateKey) {
+    return msg;
+  }
+
+  return timedCryptoOperation('decryptMessage', async () => {
+    try {
+      const authUserId = useAuthStore.getState().authUser?._id;
+      const encryptedKey = msg.senderId === authUserId 
+        ? msg.senderEncryptedKey 
+        : msg.receiverEncryptedKey;
+
+      if (!isCryptoKey(privateKey)) {
+        throw new CryptoError("Invalid private key provided");
+      }
+
+      const symmetricKey = await decryptSymmetricKey(encryptedKey, privateKey);
+      const decrypted = await crypto.subtle.decrypt(
+        { name: AES_GCM, iv: base64ToArrayBuffer(msg.iv) },
+        symmetricKey,
+        base64ToArrayBuffer(msg.text)
+      );
+
+      const decryptedText = new TextDecoder().decode(decrypted);
+      return { ...msg, text: decryptedText };
+    } catch (error) {
+      console.error("Decryption failed:", error);
+      throw new CryptoError("Failed to decrypt message");
+    }
+  });
 }
 
 export async function encryptWithPassword(jwk: JsonWebKey, password: string): Promise<string> {
