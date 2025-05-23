@@ -1,6 +1,5 @@
 import { MessageFormState } from "../components/MessageInput";
 import { useAuthStore } from "../store/useAuthStore";
-import { ChatState } from "../store/useChatStore";
 import { EncryptedMessage } from "../types/crypto.types";
 import { Message } from "../types/message.types";
 import { User } from "../types/user.types";

@@ -136,7 +136,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const privateKeyJwk = await crypto.subtle.exportKey("jwk", privateKey);
 
       await saveKey("privateKey", privateKeyJwk);
-      set({ privateKey, publicKey });
+      set({ privateKey, publicKey: publicKeyJwk });
 
       return { publicKeyJwk, encryptedPrivateKey };
     } catch (err) {

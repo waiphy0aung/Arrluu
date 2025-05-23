@@ -14,7 +14,7 @@ export class AppError extends Error {
 }
 
 export class CryptoError extends AppError {
-  constructor(message: string, operation?: string) {
+  constructor(message: string) {
     super(`Crypto operation failed: ${message}`, 'CRYPTO_ERROR');
     this.name = 'CryptoError';
   }
