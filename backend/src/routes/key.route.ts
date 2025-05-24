@@ -1,10 +1,11 @@
-import { Router } from "express"
-import { errorHandler } from "../error-handler"
-import { getKey, saveKey } from "../controllers/auth.controller"
+import { Router } from "express";
+import { errorHandler } from "../error-handler";
+import { getKey, saveKey } from "../controllers/auth.controller";
+import { generalRateLimit } from "../middlewares/rateLimit.middleware";
 
-const keyRoutes = Router()
+const keyRoutes = Router();
 
-keyRoutes.post("/", errorHandler(saveKey))
-keyRoutes.get("/", errorHandler(getKey))
+keyRoutes.post("/", generalRateLimit, errorHandler(saveKey));
+keyRoutes.get("/", generalRateLimit, errorHandler(getKey));
 
-export default keyRoutes
+export default keyRoutes;
