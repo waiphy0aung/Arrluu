@@ -30,7 +30,6 @@ export const messageWorker = new Worker(
     await newMessage.save();
 
     const receiverSocketId = getReceiverSocketId(receiverId);
-    console.log("receiverSocketId", receiverSocketId)
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }

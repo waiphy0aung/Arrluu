@@ -1,22 +1,25 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const keySchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true
+    required: true,
+    unique: true,
+    index: true
   },
   key: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 5000
   },
-  encryptionAlgoritim: {
+  encryptionAlgorithm: {
     type: String,
-    default: 'AES-GCM'
+    default: 'AES-GCM',
+    enum: ['AES-GCM', 'AES-CBC']
   }
 }, {
   timestamps: true
-})
+});
 
-const Key = mongoose.model("Key", keySchema)
-
-export default Key
+const Key = mongoose.model("Key", keySchema);
+export default Key;
