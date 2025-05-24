@@ -13,6 +13,6 @@ routes.use("/messages", authMiddleware, messageRoutes)
 
 routes.use("/key", authMiddleware, keyRoutes)
 
-routes.use("/heathcheck", healthRoutes)
+routes.use("/health", healthRoutes)
 
 export default routes

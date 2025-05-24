@@ -3,6 +3,7 @@ import cloudinary from "./cloudinary";
 import Message from "../models/message.model";
 import { getReceiverSocketId, io } from "./socket";
 import redisConnection from "./redis";
+import logger from "./logger";
 
 export const messageQueue = new Queue("messageQueue", { connection: redisConnection });
 
@@ -11,32 +12,46 @@ export const queueEvents = new QueueEvents("messageQueue", { connection: redisCo
 export const messageWorker = new Worker(
   "messageQueue",
   async (job) => {
-    const { senderId, receiverId, body } = job.data;
-    const { image } = body
+    try {
+      const { senderId, receiverId, body } = job.data;
+      const { image } = body
 
-    let imageUrl = null;
-    if (image) {
-      const uploadResponse = await cloudinary.uploader.upload(image);
-      imageUrl = uploadResponse.secure_url;
+      let imageUrl = null;
+      if (image) {
+        const uploadResponse = await cloudinary.uploader.upload(image);
+        imageUrl = uploadResponse.secure_url;
+      }
+
+      const newMessage = new Message({
+        senderId,
+        receiverId,
+        ...body,
+        image: imageUrl,
+      });
+
+      await newMessage.save();
+
+      const receiverSocketId = getReceiverSocketId(receiverId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("newMessage", newMessage);
+      }
+
+      return newMessage;
+    } catch (error: any) {
+      logger.error('Message processing failed', {
+        jobId: job.id,
+        error: error.message,
+        data: job.data
+      });
+      throw error;
     }
-
-    const newMessage = new Message({
-      senderId,
-      receiverId,
-      ...body,
-      image: imageUrl,
-    });
-
-    await newMessage.save();
-
-    const receiverSocketId = getReceiverSocketId(receiverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
-    }
-
-    return newMessage;
   },
-  { connection: redisConnection }
+  {
+    connection: redisConnection,
+    concurrency: 5,
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 50 }
+  }
 );
 
 messageWorker.on("completed", (job) => {
