@@ -12,6 +12,7 @@ export const generateToken = (userId: Types.ObjectId, res: Response) => {
   res.cookie("token", token, {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
+    sameSite: "none",
     secure: NODE_ENV === "production",
     path: '/'
   });
