@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/backend/dist/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/dist/$1"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/dist/index.js"
+    },
+    {
+      "src": "^/assets/(.*)",
+      "dest": "/frontend/dist/assets/$1"
+    },
+    {
+      "src": "^/favicon.ico",
+      "dest": "/frontend/dist/favicon.ico"
+    },
+    {
+      "src": "^/(.*).png",
+      "dest": "/frontend/dist/$1.png"
+    },
+    {
+      "src": "^/(.*).jpg",
+      "dest": "/frontend/dist/$1.jpg"
+    },
+    {
+      "src": "^/(.*).svg",
+      "dest": "/frontend/dist/$1.svg"
+    },
+    {
+      "src": "^/(.*).js",
+      "dest": "/frontend/dist/$1.js"
+    },
+    {
+      "src": "^/(.*).css",
+      "dest": "/frontend/dist/$1.css"
+    },
+    {
+      "src": "^/(.*)",
+      "dest": "/frontend/dist/index.html"
+    }
+  ]
+}
+
