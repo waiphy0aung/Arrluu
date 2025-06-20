@@ -105,15 +105,32 @@ class MessageQueueManager {
   private async processMessage(job: Job<MessageJobData>): Promise<any> {
     const { senderId, receiverId, body } = job.data;
 
+    logger.info(`Starting message processing for job ${job.id}`, {
+      jobId: job.id,
+      senderId,
+      receiverId,
+      hasImage: !!body.image
+    });
+
     try {
       // Process image if present
       let imageUrl: string | null = null;
       if (body.image) {
-        const uploadResponse = await this.uploadImage(body.image);
-        imageUrl = uploadResponse.secure_url;
+        logger.info(`Processing image for job ${job.id}`);
+        try {
+          const uploadResponse = await this.uploadImage(body.image);
+          imageUrl = uploadResponse.secure_url;
+          logger.info(`Image uploaded successfully for job ${job.id}`, { imageUrl });
+        } catch (imageError) {
+          logger.error(`Image upload failed for job ${job.id}`, {
+            error: imageError instanceof Error ? imageError.message : 'Unknown image error'
+          });
+          throw imageError;
+        }
       }
 
       // Create message
+      logger.info(`Creating message data for job ${job.id}`);
       const messageData: ProcessedMessage = {
         senderId,
         receiverId,
@@ -121,16 +138,36 @@ class MessageQueueManager {
         image: imageUrl,
       };
 
-      const newMessage = await this.saveMessage(messageData);
+      // Save message
+      logger.info(`Saving message to database for job ${job.id}`);
+      let newMessage;
+      try {
+        newMessage = await this.saveMessage(messageData);
+        logger.info(`Message saved successfully for job ${job.id}`, { messageId: newMessage._id });
+      } catch (saveError) {
+        logger.error(`Message save failed for job ${job.id}`, {
+          error: saveError instanceof Error ? saveError.message : 'Unknown save error'
+        });
+        throw saveError;
+      }
 
-      // Emit to receiver if online
-      this.emitToReceiver(receiverId, newMessage);
+      // Emit to receiver
+      logger.info(`Attempting to emit message for job ${job.id}`);
+      try {
+        this.emitToReceiver(receiverId, newMessage);
+        logger.info(`Message processing completed for job ${job.id}`);
+      } catch (emitError) {
+        logger.error(`Emit failed for job ${job.id}`, {
+          error: emitError instanceof Error ? emitError.message : 'Unknown emit error'
+        });
+      }
 
       return newMessage;
     } catch (error) {
       logger.error('Message processing failed', {
         jobId: job.id,
         error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
         senderId,
         receiverId
       });
