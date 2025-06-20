@@ -157,6 +157,7 @@ class MessageQueueManager {
 
   private emitToReceiver(receiverId: string, message: any): void {
     const receiverSocketId = getReceiverSocketId(receiverId);
+    console.log("receiverSocketId", receiverSocketId)
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", message);
       logger.info(`Message emitted to receiver ${receiverId}`);
