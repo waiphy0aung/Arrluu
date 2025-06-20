@@ -32,12 +32,12 @@ app.use("/api", routes);
 app.use(errorMiddleware);
 
 // Serve static files in production
-if (NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../../frontend/dist")));
-  app.get("*", (req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, "../../frontend", "dist", "index.html"));
-  });
-}
+// if (NODE_ENV === "production") {
+//   app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+//   app.get("*", (req: Request, res: Response) => {
+//     res.sendFile(path.join(__dirname, "../../frontend", "dist", "index.html"));
+//   });
+// }
 
 // Graceful startup
 async function startServer() {
