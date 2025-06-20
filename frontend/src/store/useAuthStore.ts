@@ -11,7 +11,7 @@ import { saveKey } from "../lib/keyStorage";
 import { User } from "../types/user.types";
 import publicKeyCache from "../lib/keyCache";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "https://arrluu-server.onrender.com";
 
 interface AuthState {
   authUser: User | null;
