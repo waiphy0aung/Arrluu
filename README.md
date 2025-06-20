@@ -4,7 +4,7 @@ A secure, scalable real-time messaging platform with client-side end-to-end encr
 
 # 🚀 Live Demo
 
-https://arrluu.onrender.com
+https://arrluu.netlify.app
 
 ## ✨ Key Features
 
@@ -317,6 +317,8 @@ npm start
 ## 🔮 Roadmap
 
 ### Planned Features
+- [ ] Forgot password
+- [ ] Email verification
 - [ ] Group messaging with multi-party encryption
 - [ ] File encryption and secure sharing
 - [ ] Message search with client-side indexing
