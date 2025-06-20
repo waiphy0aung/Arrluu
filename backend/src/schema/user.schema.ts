@@ -41,14 +41,20 @@ export const UpdateProfileSchema = z.object({
 
 // Message validation schema
 export const MessageSchema = z.object({
-  text: z.string()
-    .min(1, "Message cannot be empty")
-    .max(1000, "Message cannot exceed 1000 characters"),
-
+  text: z.string().max(1000, "Message cannot exceed 1000 characters"),
   image: z.string().optional().nullable(),
   iv: z.string().min(1, "IV is required"),
   receiverEncryptedKey: z.string().min(1, "Receiver encrypted key is required"),
-  senderEncryptedKey: z.string().min(1, "Sender encrypted key is required")
+  senderEncryptedKey: z.string().min(1, "Sender encrypted key is required"),
+}).superRefine((data, ctx) => {
+  // If no image, then text must be non-empty
+  if (!data.image && (!data.text || data.text.trim() === "")) {
+    ctx.addIssue({
+      path: ["text"],
+      code: z.ZodIssueCode.custom,
+      message: "Message cannot be empty when no image is provided",
+    });
+  }
 });
 
 export const SaveKeySchema = z.object({

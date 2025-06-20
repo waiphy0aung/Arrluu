@@ -76,7 +76,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { selectedUser, publicKey, messages } = get();
     const authUser = useAuthStore.getState().authUser
 
-    if (!selectedUser || !authUser || !publicKey || !messageData.text.trim()) {
+    if (!selectedUser || !authUser || !publicKey || (!messageData.text.trim() && !messageData.image)) {
       toast.error("Missing required data for sending message");
       return;
     }
