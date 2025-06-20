@@ -1,54 +1,33 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/backend/dist/index.js"
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "npm install && npm run build"
+      }
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/dist/$1"
+      "src": "backend/dist/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["backend/dist/**"]
+      }
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/dist/index.js"
-    },
-    {
-      "src": "^/assets/(.*)",
-      "dest": "/frontend/dist/assets/$1"
-    },
-    {
-      "src": "^/favicon.ico",
-      "dest": "/frontend/dist/favicon.ico"
-    },
-    {
-      "src": "^/(.*).png",
-      "dest": "/frontend/dist/$1.png"
-    },
-    {
-      "src": "^/(.*).jpg",
-      "dest": "/frontend/dist/$1.jpg"
-    },
-    {
-      "src": "^/(.*).svg",
-      "dest": "/frontend/dist/$1.svg"
-    },
-    {
-      "src": "^/(.*).js",
-      "dest": "/frontend/dist/$1.js"
-    },
-    {
-      "src": "^/(.*).css",
-      "dest": "/frontend/dist/$1.css"
-    },
-    {
-      "src": "^/(.*)",
-      "dest": "/frontend/dist/index.html"
-    }
+  "rewrites": [
+    { "source": "/socket.io/(.*)", "destination": "/backend/dist/index.js" },
+    { "source": "/api/(.*)", "destination": "/backend/dist/index.js" },
+    { "source": "/assets/(.*)", "destination": "/frontend/dist/assets/$1" },
+    { "source": "/favicon.ico", "destination": "/frontend/dist/favicon.ico" },
+    { "source": "/(.*).png", "destination": "/frontend/dist/$1.png" },
+    { "source": "/(.*).jpg", "destination": "/frontend/dist/$1.jpg" },
+    { "source": "/(.*).svg", "destination": "/frontend/dist/$1.svg" },
+    { "source": "/(.*).js", "destination": "/frontend/dist/$1.js" },
+    { "source": "/(.*).css", "destination": "/frontend/dist/$1.css" },
+    { "source": "/(.*)", "destination": "/frontend/dist/index.html" }
   ]
 }
 
